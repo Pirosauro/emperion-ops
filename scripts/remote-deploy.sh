@@ -35,8 +35,8 @@ function cleanup {
   trap - EXIT
 
   log "Cleaning up temporary files..."
-  rm -f "${BASE_DIR}/artifact.tar.gz"
-  rm -f "${BASE_DIR}/remote-deploy.sh"
+  # rm -f "${BASE_DIR}/artifact.tar.gz"
+  # rm -f "${BASE_DIR}/remote-deploy.sh"
 
   # --- Disable maintenance mode ---
  
@@ -56,7 +56,7 @@ function cleanup {
     log "Deployment failed!"
     if [ -d "$RELEASE_PATH" ]; then
         log "Removing failed release directory: $RELEASE_PATH"
-        rm -rf "$RELEASE_PATH"
+        # rm -rf "$RELEASE_PATH"
     fi
   fi
 }
@@ -72,7 +72,6 @@ mkdir -p "$RELEASE_PATH"
 
 log "Extracting artifact"
 tar -xzpf "$ARTIFACT_FILE" -C "$RELEASE_PATH" --strip-components=1
-rm -f "$ARTIFACT_FILE"
  
 # --- Shared files and directories ---
 
