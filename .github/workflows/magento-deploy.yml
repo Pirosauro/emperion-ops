@@ -1,0 +1,74 @@
+name: Magento Deploy (Zero-Downtime)
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Target Environment"
+        required: true
+        default: "staging"
+        type: choice
+        options: [production, staging]
+
+env:
+  TARGET_PATH: "/home/a17bc710/emperion/${{ inputs.target }}"
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/hobiri/php-cli:8.4
+      options: --user root
+      env:
+        HOME: /root
+        COMPOSER_AUTH: ${{ vars.COMPOSER_AUTH }}
+    steps:
+      # 1. Checkout operations repo (needed for Deployer configuration and deployment scripts)
+      - name: Checkout Operations Repo
+        uses: actions/checkout@v4
+
+      # 2. Checkout application code repo (magento)
+      - name: Checkout Application Code Repo
+        uses: actions/checkout@v4
+        with:
+          repository: hobiri/emperion-magento
+          token: ${{ secrets.OPS_REPO_TOKEN }}
+          path: magento
+          ref: ${{ inputs.target == 'production' && 'production' || 'staging' }}
+
+      # 3. Build Magento (install dependencies, compile DI, static content, etc.)
+      - name: Magento Build
+        run: bash scripts/build-artifact.sh
+
+      # 4. Transfer artifact and script to server
+      - name: Upload Artifact to Server
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ vars.SSH_PORT }}
+          source: "artifact.tar.gz,remote-deploy.sh"
+          target: ${{ env.TARGET_PATH }}
+          timeout: 60s
+          command_timeout: 10m
+          strip_components: 0
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      # 5. Execute Remote Deploy Script
+      - name: Execute Remote Deploy
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ vars.SSH_HOST }}
+          username: ${{ vars.SSH_USERNAME }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: ${{ vars.SSH_PORT }}
+          timeout: 60s
+          command_timeout: 10m
+          script: |
+            cd ${{ env.TARGET_PATH }}
+            ls -al
+            bash remote-deploy.sh ${{ inputs.target }}
