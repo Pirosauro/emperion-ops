@@ -54,10 +54,10 @@ function cleanup {
     log "Deploy complete: $TIMESTAMP is now live"
   else
     log "Deployment failed!"
-    if [ -d "$RELEASE_PATH" ]; then
-        log "Removing failed release directory: $RELEASE_PATH"
-        rm -rf "$RELEASE_PATH"
-    fi
+    # if [ -d "$RELEASE_PATH" ]; then
+    #     log "Removing failed release directory: $RELEASE_PATH"
+    #     rm -rf "$RELEASE_PATH"
+    # fi
   fi
 }
 trap cleanup EXIT # Execute cleanup on script exit
